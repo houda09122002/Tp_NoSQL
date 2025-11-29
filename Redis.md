@@ -250,6 +250,7 @@ Redis renvoie les éléments sous forme de liste ordonnée.
     "louis"
 ``` 
 `SUNION` renvoie l’union des deux ensembles : tous les éléments présents dans **au moins un** des sets, sans doublons.
+
 ---
 
 ### 17. Sorted Set : ZADD, ZRANGE et ZRANK
