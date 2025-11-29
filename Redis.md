@@ -58,6 +58,7 @@ J’utilise la commande SET dans Redis pour créer une nouvelle paire clé/valeu
 La commande SET demo "Bonjour" enregistre la clé demo avec la valeur "Bonjour".
 Le serveur renvoie OK, indiquant que l’opération s’est bien déroulée.
 Cette manipulation illustre le fonctionnement de base d'une base NoSQL de type clé/valeur, où chaque donnée est accessible uniquement via une clé unique.
+
 ---
 ### 2. Commande SET avec clé structurée
 
@@ -77,6 +78,7 @@ La commande enregistre la valeur `"Samir"` sous cette clé.
 ``` 
 La commande `GET user:1234` récupère la valeur associée à la clé `user:1234`.  
 Redis renvoie `"Samir"`, ce qui confirme que la donnée a bien été stockée.
+
 ---
 ### 4. Commande DEL
 
@@ -153,6 +155,7 @@ OK
 (integer) -1
 ```
 `TTL macle` renvoie **-1**, ce qui signifie que la clé *n’a pas de durée d’expiration* (elle est permanente).
+
 ---
 ### 10. Définir un TTL (expiration) sur une clé
 
@@ -173,6 +176,7 @@ OK
 ```  
 La clé `macle` est supprimée.  
 `(integer) 1` = la clé existait et a été effacée.
+
 ---
 
 ### 12. Liste avec RPUSH et erreur de type
@@ -362,176 +366,3 @@ OK
 OK
 ``` 
 Plus aucune clé dans **aucune** des bases (0, 1, 2, ...).
-
-# Partie 2
-
-## MangoDB
-Partie 1 – Requêtes simples
-
-    Afficher les 5 films sortis depuis 2015
-
-db.movies.find({ year: { $gte: 2015 } }).limit(5)
-
-    Trouver tous les films dont le genre est "Comedy"
-
-db.movies.find({ genres: "Comedy" })
-
-    Afficher les films sortis entre 2000 et 2005
-
-db.movies.find(
-  { year: { $gte: 2000, $lte: 2005 } },
-  { title: 1, year: 1 }
-).pretty()
-
-    Afficher les films de genres “Drama” ET “Romance”
-
-db.movies.find(
-  { genres: { $all: ["Drama", "Romance"] } },
-  { title: 1, genres: 1 }
-)
-
-    Afficher les films sans champ rated
-
-db.movies.find(
-  { rated: { $exists: false } },
-  { title: 1 }
-)
-
-Partie 2 – Agrégation
-
-    Afficher le nombre de films par année
-
-db.movies.aggregate([
-  { $group: { _id: "$year", total: { $sum: 1 } } },
-  { $sort: { _id: 1 } }
-])
-
-    Afficher la moyenne des notes IMDb par genre
-
-db.movies.aggregate([
-  { $unwind: "$genres" },
-  { $group: { _id: "$genres", moyenne: { $avg: "$imdb.rating" } } },
-  { $sort: { moyenne: -1 } }
-])
-
-    Afficher le nombre de films par pays
-
-db.movies.aggregate([
-  { $unwind: "$countries" },
-  { $group: { _id: "$countries", total: { $sum: 1 } } },
-  { $sort: { total: -1 } }
-])
-
-    Afficher les top 5 réalisateurs
-
-db.movies.aggregate([
-  { $unwind: "$directors" },
-  { $group: { _id: "$directors", total: { $sum: 1 } } },
-  { $sort: { total: -1 } },
-  { $limit: 5 }
-])
-
-    Afficher les films triés par note IMDb
-
-db.movies.aggregate([
-  { $sort: { "imdb.rating": -1 } },
-  { $project: { title: 1, "imdb.rating": 1 } }
-])
-
-Partie 3 – Mises à jour
-
-    Ajouter un champ etat
-
-db.movies.updateOne(
-  { title: "Jaws" },
-  { $set: { etat: "culte" } }
-)
-
-    Incrémenter les votes IMDb de 100
-
-db.movies.updateOne(
-  { title: "Inception" },
-  { $inc: { "imdb.votes": 100 } }
-)
-
-    Supprimer le champ poster pour tous les documents
-
-db.movies.updateMany(
-  {},
-  { $unset: { poster: "" } }
-)
-
-    Modifier le réalisateur de “Titanic”
-
-db.movies.updateOne(
-  { title: "Titanic" },
-  { $set: { directors: ["James Cameron"] } }
-)
-
-Partie 4 – Requêtes complexes
-
-    Afficher les films les mieux notés par décennie
-
-db.movies.aggregate([
-  { $match: { "imdb.rating": { $exists: true } } },
-  {
-    $project: {
-      title: 1,
-      decade: { $subtract: ["$year", { $mod: ["$year", 10] }] },
-      "imdb.rating": 1
-    }
-  },
-  {
-    $group: {
-      _id: "$decade",
-      maxRating: { $max: "$imdb.rating" }
-    }
-  },
-  { $sort: { _id: 1 } }
-])
-
-    Afficher les films dont le titre commence par “Star”
-
-db.movies.find(
-  { title: /^Star/ },
-  { title: 1 }
-)
-
-    Afficher les films avec plus de 2 genres
-
-db.movies.find(
-  { $where: "this.genres.length > 2" },
-  { title: 1, genres: 1 }
-)
-
-    Afficher les films de Christopher Nolan
-
-db.movies.find(
-  { directors: "Christopher Nolan" },
-  { title: 1, year: 1, "imdb.rating": 1 }
-)
-
-Partie 5 – Indexation
-
-    Créer un index sur year
-
-db.movies.createIndex({ year: 1 })
-
-    Ensuite, utiliser explain("executionStats") pour observer
-    les champs totalDocsExamined et executionTimeMillis.
-
-    Vérifier les index existants
-
-db.movies.getIndexes()
-
-    Comparer deux requêtes avec et sans index
-
-db.movies.find({ year: 1995 }).explain("executionStats")
-
-    Supprimer l'index sur year
-
-db.movies.dropIndex({ year: 1 })
-
-    Créer un index composé sur year et imdb.rating
-
-db.movies.createIndex({ year: 1, "imdb.rating": -1 })
